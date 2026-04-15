@@ -185,22 +185,4 @@ def get_stats():
         "suspicious": suspicious,
     }
 
-def get_login_trend_data():
-    """Returns last 7 days of success/fail counts for Chart.js."""
-    conn = get_db()
-    rows = conn.execute("""
-        SELECT DATE(time) as day,
-               SUM(CASE WHEN action='Login Success' THEN 1 ELSE 0 END) as success,
-               SUM(CASE WHEN action='Login Failed'  THEN 1 ELSE 0 END) as failed
-        FROM logs
-        WHERE time >= DATE('now','-7 days')
-        GROUP BY day
-        ORDER BY day ASC
-    """).fetchall()
-    conn.close()
-    labels, success, failed = [], [], []
-    for r in rows:
-        labels.append(r[0])
-        success.append(r[1])
-        failed.append(r[2])
-    return labels, success, failed
+
