@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: radial-gradient(ellipse at 50% 0%, rgba(168,85,247,0.07) 0%, var(--bg-primary) 60%);
+    }
+    .pw-strength-bar {
+        height: 4px; border-radius: 2px; margin-top: 8px;
+        background: var(--border); overflow: hidden;
+    }
+    .pw-strength-fill {
+        height: 100%; border-radius: 2px;
+        transition: width .3s, background .3s;
+    }
+    .pw-hint { font-size: 11px; margin-top: 6px; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <div class="auth-logo">🔐</div>
+        <div class="auth-title">Create Account</div>
+        <div class="auth-subtitle">Join CyberGuard Security Platform</div>
+
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, msg in messages %}
+                <div class="flash-msg flash-{{ category }}" style="margin-bottom:16px;">
+                    <i class="bi bi-{% if category=='error' %}x-circle{% else %}check-circle{% endif %}"></i>
+                    {{ msg }}
+                </div>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="/register" id="regForm">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <div class="input-icon-wrap">
+                    <i class="bi bi-person-badge input-icon"></i>
+                    <input name="full_name" class="form-input" placeholder="John Doe" required>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <div class="input-icon-wrap">
+                        <i class="bi bi-at input-icon"></i>
+                        <input name="username" class="form-input" placeholder="john_doe" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <div class="input-icon-wrap">
+                        <i class="bi bi-envelope input-icon"></i>
+                        <input name="email" type="email" class="form-input" placeholder="john@example.com" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <div class="input-icon-wrap">
+                        <i class="bi bi-lock input-icon"></i>
+                        <input name="password" id="pwInput" type="password" class="form-input" placeholder="••••••••" required>
+                    </div>
+                    <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwFill"></div></div>
+                    <div class="pw-hint" id="pwHint" style="color:var(--text-muted);">Enter a strong password</div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Confirm Password</label>
+                    <div class="input-icon-wrap">
+                        <i class="bi bi-lock-fill input-icon"></i>
+                        <input name="confirm_password" id="pwConfirm" type="password" class="form-input" placeholder="••••••••" required>
+                    </div>
+                    <div class="pw-hint" id="matchHint" style="color:var(--text-muted);">Must match above</div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit">
+                <i class="bi bi-person-plus me-2"></i>Create Account
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            Already have an account? <a href="/login">Sign in</a>
+        </div>
+    </div>
+</div>
+
+<script>
+const pwInput   = document.getElementById('pwInput');
+const pwFill    = document.getElementById('pwFill');
+const pwHint    = document.getElementById('pwHint');
+const pwConfirm = document.getElementById('pwConfirm');
+const matchHint = document.getElementById('matchHint');
+
+const levels = [
+    { w: '20%',  bg: '#ff4757', label: '⚠️ Very Weak' },
+    { w: '40%',  bg: '#ff6b81', label: '⚠️ Weak' },
+    { w: '60%',  bg: '#ffa502', label: '🟡 Fair' },
+    { w: '80%',  bg: '#2ed573', label: '✅ Strong' },
+    { w: '100%', bg: '#00ff88', label: '🔒 Very Strong' },
+];
+
+function calcStrength(pw) {
+    let s = 0;
+    if (pw.length >= 8) s++;
+    if (/[A-Z]/.test(pw)) s++;
+    if (/[a-z]/.test(pw)) s++;
+    if (/\d/.test(pw)) s++;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(pw)) s++;
+    return s;
+}
+
+pwInput.addEventListener('input', () => {
+    const pw = pwInput.value;
+    if (!pw) { pwFill.style.width = '0'; pwHint.textContent = 'Enter a strong password'; return; }
+    const s = calcStrength(pw);
+    const lvl = levels[Math.max(0, s-1)];
+    pwFill.style.width = lvl.w;
+    pwFill.style.background = lvl.bg;
+    pwHint.textContent = lvl.label;
+    pwHint.style.color = lvl.bg;
+});
+
+pwConfirm.addEventListener('input', () => {
+    if (pwConfirm.value === pwInput.value) {
+        matchHint.textContent = '✅ Passwords match';
+        matchHint.style.color = 'var(--accent-green)';
+    } else {
+        matchHint.textContent = '❌ Passwords do not match';
+        matchHint.style.color = 'var(--accent-red)';
+    }
+});
+</script>
+{% endblock %}

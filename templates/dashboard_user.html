@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block body %}
+<div class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-icon">🛡️</div>
+        <div>
+            <div class="brand">CyberGuard</div>
+            <div class="tagline">User Portal</div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section-label"><i class="bi bi-speedometer2" style="margin-right:6px;"></i>Dashboard</div>
+        <a href="/dashboard" class="nav-item-link active">
+            <i class="bi bi-graph-up"></i> Overview
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-pill">
+            <div class="user-avatar">{{ fullname[0:1].upper() }}</div>
+            <div>
+                <div class="uname">{{ fullname }}</div>
+                <div class="urole">User</div>
+            </div>
+        </div>
+        <a href="/logout" class="btn-cyber" style="width:100%;text-align:center;text-decoration:none;display:block;padding:8px;margin-top:8px;font-size:12px;">
+            <i class="bi bi-box-arrow-right me-2"></i>Logout
+        </a>
+    </div>
+</div>
+
+<div class="main-wrapper">
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-title">
+            <i class="bi bi-person me-2"></i>Welcome, {{ fullname }}!
+        </div>
+        <div class="topbar-actions">
+            <span class="badge-user" style="padding:5px 12px; font-size:12px;">
+                <i class="bi bi-person-check me-1"></i>User
+            </span>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, msg in messages %}
+            <div class="flash-msg flash-{{ category }}" style="margin:16px 28px 0 28px;">
+                <i class="bi bi-{% if category=='error' %}x-circle{% elif category=='success' %}check-circle{% else %}info-circle{% endif %}"></i>
+                {{ msg }}
+            </div>
+        {% endfor %}
+    {% endwith %}
+
+    <div class="main-content">
+        <!-- Overview Stats -->
+        <div style="margin-bottom:28px;">
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px; font-weight:500; text-transform:uppercase; letter-spacing:1px;">
+                Your Activity
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+                <div class="stat-card green">
+                    <div class="stat-icon green"><i class="bi bi-check-circle"></i></div>
+                    <div class="stat-label">Successful Logins</div>
+                    <div class="stat-value" style="color:var(--accent-green);">{{ success_count }}</div>
+                </div>
+                <div class="stat-card red">
+                    <div class="stat-icon red"><i class="bi bi-shield-x"></i></div>
+                    <div class="stat-label">Failed Attempts</div>
+                    <div class="stat-value" style="color:var(--accent-red);">{{ failed_count }}</div>
+                </div>
+                <div class="stat-card cyan">
+                    <div class="stat-icon cyan"><i class="bi bi-clock-history"></i></div>
+                    <div class="stat-label">Last Login</div>
+                    <div style="font-size:13px; font-weight:600; color:var(--accent); margin-top:8px;">
+                        {{ last_login[:16] if last_login != 'Never' else 'Never' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Alert if Failed Attempts -->
+        {% if failed_count >= 3 %}
+        <div class="alert-item warning" style="margin-bottom:24px;">
+            <i class="bi bi-exclamation-triangle" style="font-size:18px;"></i>
+            <div>
+                <div style="font-size:13px; font-weight:600;">Security Notice</div>
+                <div style="font-size:12px; color:var(--text-dim); margin-top:2px;">
+                    We detected {{ failed_count }} failed login attempt(s). If this wasn't you, please change your password.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Activity Logs -->
+        <div class="section-card">
+            <div class="section-header">
+                <h6><i class="bi bi-clock-history"></i> My Login Activity</h6>
+                <input type="text" id="userSearch" class="search-bar" placeholder="Search logs...">
+            </div>
+            <div class="section-body">
+                <div class="table-responsive" style="max-height:400px; overflow-y:auto;">
+                    <table class="cyber-table">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>IP Address</th>
+                                <th>Timestamp</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userLogsBody">
+                            {% for log in user_logs %}
+                            <tr data-search="{{ log.action|lower }} {{ log.ip|lower }}">
+                                <td style="font-size:13px; font-weight:500;">{{ log.action }}</td>
+                                <td><code style="font-size:11px;">{{ log.ip }}</code></td>
+                                <td><small style="color:var(--text-muted);">{{ log.time[:19] }}</small></td>
+                                <td>
+                                    {% if log.status == 'success' %}
+                                        <span class="badge-success">✓ Success</span>
+                                    {% elif log.status == 'danger' or log.status == 'error' %}
+                                        <span class="badge-danger">✕ Failed</span>
+                                    {% else %}
+                                        <span class="badge-info">ℹ Info</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if not user_logs %}
+                <div style="text-align:center; padding:40px; color:var(--text-muted); font-size:13px;">
+                    <i class="bi bi-file-earmark" style="font-size:32px; display:block; margin-bottom:8px;"></i>
+                    No activity recorded yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Info Box -->
+        <div class="alert-item" style="margin-top:24px;">
+            <i class="bi bi-info-circle" style="font-size:18px;"></i>
+            <div>
+                <div style="font-size:13px; font-weight:600;">User Account</div>
+                <div style="font-size:12px; color:var(--text-dim); margin-top:2px;">
+                    You are logged in as a standard user. You can view only your own activity. Contact your administrator for additional permissions.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="main-footer">
+        <div><small>🛡️ CyberGuard Security Dashboard</small></div>
+        <div><small style="color:var(--text-muted);">Logged as: <strong>{{ username }}</strong></small></div>
+    </div>
+</div>
+
+<script>
+const userSearch = document.getElementById('userSearch');
+const userRows   = document.querySelectorAll('#userLogsBody tr');
+if (userSearch) {
+    userSearch.addEventListener('input', () => {
+        const q = userSearch.value.toLowerCase();
+        userRows.forEach(row => {
+            row.style.display = !q || (row.dataset.search||'').includes(q) ? '' : 'none';
+        });
+    });
+}
+</script>
+{% endblock %}

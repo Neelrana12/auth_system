@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block body %}
+
+<!-- ═══ SIDEBAR ══════════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <div class="logo-icon">🛡️</div>
+        <div>
+            <div class="brand">CyberGuard</div>
+            <div class="tagline">SOC Platform</div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Overview</div>
+        <a href="#overview" class="nav-item-link active"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+
+        <div class="nav-section-label" style="margin-top:16px;">Security</div>
+        <a href="#alerts" class="nav-item-link"><i class="bi bi-exclamation-triangle"></i> Alerts
+            {% if suspicious|length > 0 %}
+            <span style="margin-left:auto; background:var(--accent-red); color:#fff; font-size:10px; padding:2px 7px; border-radius:20px;">{{ suspicious|length }}</span>
+            {% endif %}
+        </a>
+        <a href="#logs"  class="nav-item-link"><i class="bi bi-journal-text"></i> Audit Logs</a>
+
+        <div class="nav-section-label" style="margin-top:16px;">Administration</div>
+        <a href="#users" class="nav-item-link"><i class="bi bi-people"></i> Users</a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user-pill">
+            <div class="user-avatar">{{ fullname[0]|upper }}</div>
+            <div>
+                <div class="uname">{{ fullname }}</div>
+                <div class="urole">Admin</div>
+            </div>
+        </div>
+        <a href="/logout" class="nav-item-link" style="color:var(--accent-red); gap:8px;">
+            <i class="bi bi-box-arrow-left"></i> Sign Out
+        </a>
+    </div>
+</aside>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════════════════════ -->
+<div class="main-wrapper">
+
+    <!-- Topbar -->
+    <div class="topbar">
+        <div>
+            <div class="topbar-title">Security Operations Center</div>
+            <div style="font-size:12px; color:var(--text-muted);">
+                <span class="status-dot dot-green"></span>&nbsp; All systems operational
+            </div>
+        </div>
+        <div class="topbar-actions">
+            <div style="font-size:12px; color:var(--text-muted);" id="clockDisplay"></div>
+            <span class="badge-admin" style="padding:5px 12px; font-size:12px;">
+                <i class="bi bi-shield-check me-1"></i>ADMIN
+            </span>
+        </div>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-container">
+            {% for category, msg in messages %}
+            <div class="flash-msg flash-{{ category }}">
+                <i class="bi bi-{% if category=='success' %}check-circle{% elif category=='error' %}x-circle{% else %}info-circle{% endif %}"></i>
+                {{ msg }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="main-content">
+
+        <!-- ── OVERVIEW STATS ── -->
+        <div id="overview" style="margin-bottom:28px;">
+            <div style="font-size:13px; color:var(--text-muted); margin-bottom:14px; font-weight:500; text-transform:uppercase; letter-spacing:1px;">
+                Overview
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px;">
+                <div class="stat-card cyan">
+                    <div class="stat-icon cyan"><i class="bi bi-people"></i></div>
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-value" style="color:var(--accent);">{{ stats.total_users }}</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-icon green"><i class="bi bi-box-arrow-in-right"></i></div>
+                    <div class="stat-label">Successful Logins</div>
+                    <div class="stat-value" style="color:var(--accent-green);">{{ stats.total_logins }}</div>
+                </div>
+                <div class="stat-card red">
+                    <div class="stat-icon red"><i class="bi bi-shield-x"></i></div>
+                    <div class="stat-label">Failed Attempts</div>
+                    <div class="stat-value" style="color:var(--accent-red);">{{ stats.failed_logins }}</div>
+                </div>
+                <div class="stat-card yellow">
+                    <div class="stat-icon yellow"><i class="bi bi-exclamation-triangle"></i></div>
+                    <div class="stat-label">Suspicious IPs</div>
+                    <div class="stat-value" style="color:var(--accent-yellow);">{{ stats.suspicious }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── ALERTS + USERS ROW ── -->
+        <div id="alerts" style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:28px;">
+
+            <!-- Suspicious activity -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h6><i class="bi bi-exclamation-triangle" style="color:var(--accent-red);"></i> Suspicious Activity</h6>
+                    <span style="font-size:12px; color:var(--text-muted);">{{ suspicious|length }} flagged</span>
+                </div>
+                <div class="section-body" style="padding:14px 20px;">
+                    {% if suspicious %}
+                        {% for s in suspicious %}
+                        <div class="alert-item {% if s.count >= 5 %}critical{% else %}warning{% endif %}">
+                            <div style="font-size:20px;">{% if s.count >= 5 %}🔴{% else %}🟡{% endif %}</div>
+                            <div style="flex:1; min-width:0;">
+                                <div style="font-size:13px; font-weight:600;">{{ s.username }}</div>
+                                <div style="font-size:11px; color:var(--text-muted);">
+                                    IP: <span class="mono">{{ s.ip }}</span> &nbsp;|&nbsp; Last: {{ s.last_attempt[:16] }}
+                                </div>
+                            </div>
+                            <span class="{% if s.count >= 5 %}badge-danger{% else %}badge-warning{% endif %}">
+                                {{ s.count }} attempts
+                            </span>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align:center; padding:30px 0; color:var(--text-muted); font-size:13px;">
+                            <i class="bi bi-shield-check" style="font-size:32px; color:var(--accent-green); display:block; margin-bottom:8px;"></i>
+                            No suspicious activity detected
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- User list summary -->
+            <div id="users" class="section-card">
+                <div class="section-header">
+                    <h6><i class="bi bi-people" style="color:var(--accent);"></i> Registered Users</h6>
+                    <span style="font-size:12px; color:var(--text-muted);">{{ users|length }} total</span>
+                </div>
+                <div style="overflow-y:auto; max-height:310px;">
+                    <table class="cyber-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th>Joined</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td>
+                                    <div style="font-size:13px; font-weight:500;">{{ u.username }}</div>
+                                    <div style="font-size:11px; color:var(--text-muted);">{{ u.email }}</div>
+                                </td>
+                                <td>
+                                    <span class="{% if u.role == 'admin' %}badge-admin{% else %}badge-user{% endif %}">
+                                        {{ u.role }}
+                                    </span>
+                                </td>
+                                <td style="font-size:12px; color:var(--text-muted);">{{ u.created_at[:10] }}</td>
+                                <td>
+                                    {% if u.username != username %}
+                                    <form method="POST" action="/admin/delete-user/{{ u.id }}"
+                                          onsubmit="return confirm('Delete {{ u.username }}?')">
+                                        <button type="submit" class="btn-danger-sm">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span style="font-size:11px; color:var(--text-muted);">You</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── AUDIT LOGS ── -->
+        <div id="logs" class="section-card">
+            <div class="section-header">
+                <h6><i class="bi bi-journal-text" style="color:var(--accent-green);"></i> Audit Logs</h6>
+            </div>
+            <div style="overflow-x:auto; max-height:400px; overflow-y:auto;">
+                <table class="cyber-table" id="logsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Username</th>
+                            <th>Event</th>
+                            <th>IP Address</th>
+                            <th>Timestamp</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody">
+                        {% for log in logs %}
+                        <tr>
+                            <td class="mono" style="color:var(--text-muted); font-size:11px;">{{ log.id }}</td>
+                            <td style="font-weight:500; font-size:13px;">{{ log.username }}</td>
+                            <td style="font-size:13px;">{{ log.action }}</td>
+                            <td class="mono" style="font-size:12px; color:var(--text-muted);">{{ log.ip }}</td>
+                            <td style="font-size:12px; color:var(--text-muted);">{{ log.time[:19] }}</td>
+                            <td>
+                                <span class="badge-{{ log.status }}">
+                                    {% if log.status == 'success' %}✓{% elif log.status == 'danger' %}✗{% elif log.status == 'warning' %}⚠{% else %}ℹ{% endif %}
+                                    {{ log.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if not logs %}
+                <div style="text-align:center; padding:40px; color:var(--text-muted); font-size:13px;">
+                    No logs recorded yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div><!-- /main-content -->
+
+    <footer class="main-footer">
+        <span>CyberGuard v2.0 &nbsp;|&nbsp; Security Operations Platform</span>
+        <span>Logged in as <strong style="color:var(--accent);">{{ username }}</strong> (Admin)</span>
+    </footer>
+
+</div><!-- /main-wrapper -->
+</div>
+
+<script>
+// ── Clock ─────────────────────────────────────────────────────────────────
+function updateClock() {
+    document.getElementById('clockDisplay').textContent =
+        new Date().toLocaleString('en-IN', { hour12: false });
+}
+updateClock(); setInterval(updateClock, 1000);
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Clock update
+function updateClock() {
+    const el = document.getElementById('clockDisplay');
+    if (el) el.textContent = new Date().toLocaleString();
+}
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+{% endblock %}
