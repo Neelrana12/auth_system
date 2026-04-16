@@ -241,26 +241,13 @@
     </footer>
 
 </div><!-- /main-wrapper -->
-</div>
 
 <script>
 // ── Clock ─────────────────────────────────────────────────────────────────
 function updateClock() {
-    document.getElementById('clockDisplay').textContent =
-        new Date().toLocaleString('en-IN', { hour12: false });
-}
-updateClock(); setInterval(updateClock, 1000);
-
-{% endblock %}
-
-{% block extra_js %}
-<script>
-// Clock update
-function updateClock() {
     const el = document.getElementById('clockDisplay');
-    if (el) el.textContent = new Date().toLocaleString();
+    if (el) el.textContent = new Date().toLocaleString('en-IN', { hour12: false });
 }
-updateClock();
-setInterval(updateClock, 1000);
+updateClock(); 
 </script>
 {% endblock %}
