@@ -1,11 +1,19 @@
 from flask import Flask
 from flask_bcrypt import Bcrypt
 import os
+import traceback
 
 app = Flask(__name__)
 app.secret_key = "cyberguard_secret_2024_change_in_production"
 
 bcrypt = Bcrypt(app)
+
+# Error logging for debugging
+@app.errorhandler(500)
+def internal_error(error):
+    print(f"500 ERROR: {error}")
+    traceback.print_exc()
+    return "Internal Server Error", 500
 
 # Register blueprints
 from routes.auth import auth_bp
