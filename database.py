@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 def get_db():
     """Connect to Azure SQL Database."""
     return pyodbc.connect(
-        'DRIVER={ODBC Driver 18 for SQL Server};'
+        'DRIVER={ODBC Driver 17 for SQL Server};'
         'SERVER=neel-sql-server.database.windows.net;'
         'DATABASE=cyberguard_db;'
         'UID=neeladmin;'
