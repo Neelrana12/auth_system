@@ -1,34 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Register{% endblock %}
 
-{% block extra_css %}
-<style>
-    body {
-        background: radial-gradient(ellipse at 50% 0%, rgba(168,85,247,0.07) 0%, var(--bg-primary) 60%);
-    }
-    .pw-strength-bar {
-        height: 4px; border-radius: 2px; margin-top: 8px;
-        background: var(--border); overflow: hidden;
-    }
-    .pw-strength-fill {
-        height: 100%; border-radius: 2px;
-        transition: width .3s, background .3s;
-    }
-    .pw-hint { font-size: 11px; margin-top: 6px; }
-</style>
-{% endblock %}
-
 {% block body %}
-<div class="auth-wrapper">
-    <div class="auth-card">
-        <div class="auth-logo">🔐</div>
+<div class="auth-page">
+    <div class="auth-wrapper">
+        <div class="auth-card">
         <div class="auth-title">Create Account</div>
         <div class="auth-subtitle">Join CyberGuard Security Platform</div>
 
         <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% for category, msg in messages %}
-                <div class="flash-msg flash-{{ category }}" style="margin-bottom:16px;">
+                <div class="flash-msg flash-{{ category }}">
                     <i class="bi bi-{% if category=='error' %}x-circle{% else %}check-circle{% endif %}"></i>
                     {{ msg }}
                 </div>
@@ -66,30 +49,29 @@
                     <label class="form-label">Password</label>
                     <div class="input-icon-wrap">
                         <i class="bi bi-lock input-icon"></i>
-                        <input name="password" id="pwInput" type="password" class="form-input" placeholder="••••••••" required>
+                        <input name="password" id="pwInput" type="password" class="form-input" placeholder="Enter a strong password" required>
                     </div>
                     <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwFill"></div></div>
-                    <div class="pw-hint" id="pwHint" style="color:var(--text-muted);">Enter a strong password</div>
+                    <div class="pw-hint" id="pwHint">Enter a strong password</div>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Confirm Password</label>
                     <div class="input-icon-wrap">
                         <i class="bi bi-lock-fill input-icon"></i>
-                        <input name="confirm_password" id="pwConfirm" type="password" class="form-input" placeholder="••••••••" required>
+                        <input name="confirm_password" id="pwConfirm" type="password" class="form-input" placeholder="Confirm password" required>
                     </div>
-                    <div class="pw-hint" id="matchHint" style="color:var(--text-muted);">Must match above</div>
+                    <div class="pw-hint" id="matchHint">Must match above</div>
                 </div>
             </div>
 
-            <button type="submit" class="btn-submit">
-                <i class="bi bi-person-plus me-2"></i>Create Account
-            </button>
+            <button type="submit" class="btn-submit">Create Account</button>
         </form>
 
         <div class="auth-footer">
             Already have an account? <a href="/login">Sign in</a>
         </div>
     </div>
+</div>
 </div>
 
 <script>
@@ -100,11 +82,11 @@ const pwConfirm = document.getElementById('pwConfirm');
 const matchHint = document.getElementById('matchHint');
 
 const levels = [
-    { w: '20%',  bg: '#ff4757', label: '⚠️ Very Weak' },
-    { w: '40%',  bg: '#ff6b81', label: '⚠️ Weak' },
-    { w: '60%',  bg: '#ffa502', label: '🟡 Fair' },
-    { w: '80%',  bg: '#2ed573', label: '✅ Strong' },
-    { w: '100%', bg: '#00ff88', label: '🔒 Very Strong' },
+    { w: '20%',  bg: '#dc2626', label: '⚠️ Very Weak' },
+    { w: '40%',  bg: '#f97316', label: '⚠️ Weak' },
+    { w: '60%',  bg: '#eab308', label: '🟡 Fair' },
+    { w: '80%',  bg: '#84cc16', label: '✅ Strong' },
+    { w: '100%', bg: '#16a34a', label: '🔒 Very Strong' },
 ];
 
 function calcStrength(pw) {
@@ -131,10 +113,10 @@ pwInput.addEventListener('input', () => {
 pwConfirm.addEventListener('input', () => {
     if (pwConfirm.value === pwInput.value) {
         matchHint.textContent = '✅ Passwords match';
-        matchHint.style.color = 'var(--accent-green)';
+        matchHint.style.color = '#16a34a';
     } else {
         matchHint.textContent = '❌ Passwords do not match';
-        matchHint.style.color = 'var(--accent-red)';
+        matchHint.style.color = '#dc2626';
     }
 });
 </script>

@@ -3,7 +3,7 @@ from flask_bcrypt import Bcrypt
 import re
 from database import (
     get_user_by_username, get_user_by_email, create_user,
-    is_account_locked, increment_attempt, reset_attempts, add_log
+    is_account_locked, increment_attempt, reset_attempts, add_log, get_attempts
 )
 
 auth_bp = Blueprint("auth", __name__)
@@ -115,7 +115,7 @@ def login():
             return redirect("/dashboard")
         else:
             increment_attempt(username, ip)
-            attempt_row = __import__("database").get_attempts(username)
+            attempt_row = get_attempts(username)
             remaining   = max(0, 5 - (attempt_row["count"] if attempt_row else 1))
             add_log(username, "Login Failed", ip, "danger")
             if remaining > 0:
