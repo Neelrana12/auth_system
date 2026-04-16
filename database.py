@@ -1,66 +1,22 @@
-import sqlite3
-import os
+import pyodbc
 from datetime import datetime, timedelta
 
-# SQLite database file
-DB_PATH = "cyberguard.db"
-
 def get_db():
-    """Connect to SQLite Database."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Connect to Azure SQL Database."""
+    return pyodbc.connect(
+        'DRIVER={ODBC Driver 17 for SQL Server};'
+        'SERVER=neel-sql-server.database.windows.net;'
+        'DATABASE=cyberguard_db;'
+        'UID=neeladmin;'
+        'PWD=Neel@12345'
+    )
 
-def init_db():
-    """Initialize database with required tables."""
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    # Create users table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            full_name TEXT NOT NULL,
-            username TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT DEFAULT 'user',
-            is_locked INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    
-    # Create attempts table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS attempts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            ip TEXT,
-            count INTEGER DEFAULT 1,
-            last_attempt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    
-    # Create logs table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            action TEXT NOT NULL,
-            ip TEXT DEFAULT 'N/A',
-            status TEXT DEFAULT 'info',
-            time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    
-    conn.commit()
-    conn.close()
-
-def row_to_dict(row):
-    """Convert sqlite3.Row to dictionary."""
+def row_to_dict(cursor, row):
+    """Convert pyodbc row to dictionary."""
     if row is None:
         return None
-    return dict(row)
+    columns = [column[0] for column in cursor.description]
+    return dict(zip(columns, row))
 
 # ─── Auth helpers ────────────────────────────────────────────────────────────
 
@@ -68,7 +24,8 @@ def get_user_by_username(username):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-    user = row_to_dict(cursor.fetchone())
+    row = cursor.fetchone()
+    user = row_to_dict(cursor, row)
     cursor.close()
     conn.close()
     return user
@@ -77,7 +34,8 @@ def get_user_by_email(email):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
-    user = row_to_dict(cursor.fetchone())
+    row = cursor.fetchone()
+    user = row_to_dict(cursor, row)
     cursor.close()
     conn.close()
     return user
@@ -99,7 +57,8 @@ def get_attempts(username):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM attempts WHERE username = ?", (username,))
-    result = row_to_dict(cursor.fetchone())
+    row = cursor.fetchone()
+    result = row_to_dict(cursor, row)
     cursor.close()
     conn.close()
     return result
@@ -134,7 +93,7 @@ def reset_attempts(username):
 def is_account_locked(username):
     row = get_attempts(username)
     if row and row["count"] >= 5:
-        last = datetime.strptime(str(row["last_attempt"]), "%Y-%m-%d %H:%M:%S")
+        last = datetime.strptime(str(row["last_attempt"]), "%Y-%m-%d %H:%M:%S.%f")
         if datetime.now() - last < timedelta(minutes=10):
             return True, row["count"]
     return False, 0
@@ -161,7 +120,7 @@ def get_all_logs(limit=200):
         "SELECT * FROM logs ORDER BY time DESC LIMIT ?", (limit,)
     )
     rows = cursor.fetchall()
-    result = [row_to_dict(r) for r in rows]
+    result = [row_to_dict(cursor, r) for r in rows]
     cursor.close()
     conn.close()
     return result
@@ -174,7 +133,7 @@ def get_user_logs(username, limit=50):
         (username, limit)
     )
     rows = cursor.fetchall()
-    result = [row_to_dict(r) for r in rows]
+    result = [row_to_dict(cursor, r) for r in rows]
     cursor.close()
     conn.close()
     return result
@@ -184,7 +143,7 @@ def get_all_users():
     cursor = conn.cursor()
     cursor.execute("SELECT id, full_name, username, email, role, created_at, is_locked FROM users ORDER BY created_at DESC")
     rows = cursor.fetchall()
-    result = [row_to_dict(r) for r in rows]
+    result = [row_to_dict(cursor, r) for r in rows]
     cursor.close()
     conn.close()
     return result
@@ -197,7 +156,7 @@ def get_suspicious_users(threshold=3):
         (threshold,)
     )
     rows = cursor.fetchall()
-    result = [row_to_dict(r) for r in rows]
+    result = [row_to_dict(cursor, r) for r in rows]
     cursor.close()
     conn.close()
     return result
