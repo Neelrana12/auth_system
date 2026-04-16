@@ -1,115 +1,93 @@
-import sqlite3
+import pyodbc
 from datetime import datetime, timedelta
-import os
-
-DB_PATH = "database.db"
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    """Connect to Azure SQL Database."""
+    return pyodbc.connect(
+        'DRIVER={ODBC Driver 17 for SQL Server};'
+        'SERVER=neel-sql-server.database.windows.net;'
+        'DATABASE=cyberguard_db;'
+        'UID=neeladmin;'
+        'PWD=Neel@12345'
+    )
 
-def init_db():
-    """Initialize database with tables. Create default admin if it doesn't exist."""
-    conn = get_db()
-    cur = conn.cursor()
-
-    cur.executescript("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            full_name TEXT NOT NULL,
-            username TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT DEFAULT 'user',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            is_locked INTEGER DEFAULT 0
-        );
-
-        CREATE TABLE IF NOT EXISTS logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            action TEXT NOT NULL,
-            ip TEXT DEFAULT 'N/A',
-            status TEXT DEFAULT 'info',
-            time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS attempts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            ip TEXT DEFAULT 'N/A',
-            count INTEGER DEFAULT 0,
-            last_attempt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    """)
-
-    # Create default admin user if it doesn't exist
-    admin_check = cur.execute("SELECT * FROM users WHERE username = ?", ("admin",)).fetchone()
-    if not admin_check:
-        # Import bcrypt to hash password - default password is 'admin123' (CHANGE THIS IN PRODUCTION!)
-        from flask_bcrypt import Bcrypt
-        bcrypt = Bcrypt()
-        hashed = bcrypt.generate_password_hash("admin123").decode("utf-8")
-        cur.execute(
-            "INSERT INTO users (full_name, username, email, password, role) VALUES (?,?,?,?,?)",
-            ("Administrator", "admin", "admin@cyberguard.local", hashed, "admin")
-        )
-
-    conn.commit()
-    conn.close()
+def row_to_dict(cursor, row):
+    """Convert pyodbc row to dictionary."""
+    if row is None:
+        return None
+    columns = [column[0] for column in cursor.description]
+    return dict(zip(columns, row))
 
 # ─── Auth helpers ────────────────────────────────────────────────────────────
 
 def get_user_by_username(username):
     conn = get_db()
-    user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    row = cursor.fetchone()
+    user = row_to_dict(cursor, row)
+    cursor.close()
     conn.close()
     return user
 
 def get_user_by_email(email):
     conn = get_db()
-    user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+    row = cursor.fetchone()
+    user = row_to_dict(cursor, row)
+    cursor.close()
     conn.close()
     return user
 
 def create_user(full_name, username, email, hashed_password, role="user"):
     conn = get_db()
-    conn.execute(
+    cursor = conn.cursor()
+    cursor.execute(
         "INSERT INTO users (full_name, username, email, password, role) VALUES (?,?,?,?,?)",
         (full_name, username, email, hashed_password, role)
     )
     conn.commit()
+    cursor.close()
     conn.close()
 
 # ─── Attempt helpers ─────────────────────────────────────────────────────────
 
 def get_attempts(username):
     conn = get_db()
-    row = conn.execute("SELECT * FROM attempts WHERE username = ?", (username,)).fetchone()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM attempts WHERE username = ?", (username,))
+    row = cursor.fetchone()
+    result = row_to_dict(cursor, row)
+    cursor.close()
     conn.close()
-    return row
+    return result
 
 def increment_attempt(username, ip):
     conn = get_db()
-    existing = conn.execute("SELECT id FROM attempts WHERE username = ?", (username,)).fetchone()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM attempts WHERE username = ?", (username,))
+    existing = cursor.fetchone()
     if existing:
-        conn.execute(
+        cursor.execute(
             "UPDATE attempts SET count = count + 1, last_attempt = CURRENT_TIMESTAMP, ip = ? WHERE username = ?",
             (ip, username)
         )
     else:
-        conn.execute(
+        cursor.execute(
             "INSERT INTO attempts (username, ip, count) VALUES (?,?,1)",
             (username, ip)
         )
     conn.commit()
+    cursor.close()
     conn.close()
 
 def reset_attempts(username):
     conn = get_db()
-    conn.execute("DELETE FROM attempts WHERE username = ?", (username,))
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM attempts WHERE username = ?", (username,))
     conn.commit()
+    cursor.close()
     conn.close()
 
 def is_account_locked(username):
@@ -124,59 +102,85 @@ def is_account_locked(username):
 
 def add_log(username, action, ip="N/A", status="info"):
     conn = get_db()
-    conn.execute(
+    cursor = conn.cursor()
+    cursor.execute(
         "INSERT INTO logs (username, action, ip, status) VALUES (?,?,?,?)",
         (username, action, ip, status)
     )
     conn.commit()
+    cursor.close()
     conn.close()
 
 # ─── Dashboard data helpers ───────────────────────────────────────────────────
 
 def get_all_logs(limit=200):
     conn = get_db()
-    rows = conn.execute(
+    cursor = conn.cursor()
+    cursor.execute(
         "SELECT * FROM logs ORDER BY time DESC LIMIT ?", (limit,)
-    ).fetchall()
+    )
+    rows = cursor.fetchall()
+    result = [row_to_dict(cursor, r) for r in rows]
+    cursor.close()
     conn.close()
-    return [dict(r) for r in rows]
+    return result
 
 def get_user_logs(username, limit=50):
     conn = get_db()
-    rows = conn.execute(
+    cursor = conn.cursor()
+    cursor.execute(
         "SELECT * FROM logs WHERE username = ? ORDER BY time DESC LIMIT ?",
         (username, limit)
-    ).fetchall()
+    )
+    rows = cursor.fetchall()
+    result = [row_to_dict(cursor, r) for r in rows]
+    cursor.close()
     conn.close()
-    return [dict(r) for r in rows]
+    return result
 
 def get_all_users():
     conn = get_db()
-    rows = conn.execute("SELECT id, full_name, username, email, role, created_at, is_locked FROM users ORDER BY created_at DESC").fetchall()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, full_name, username, email, role, created_at, is_locked FROM users ORDER BY created_at DESC")
+    rows = cursor.fetchall()
+    result = [row_to_dict(cursor, r) for r in rows]
+    cursor.close()
     conn.close()
-    return [dict(r) for r in rows]
+    return result
 
 def get_suspicious_users(threshold=3):
     conn = get_db()
-    rows = conn.execute(
+    cursor = conn.cursor()
+    cursor.execute(
         "SELECT username, ip, count, last_attempt FROM attempts WHERE count >= ? ORDER BY count DESC",
         (threshold,)
-    ).fetchall()
+    )
+    rows = cursor.fetchall()
+    result = [row_to_dict(cursor, r) for r in rows]
+    cursor.close()
     conn.close()
-    return [dict(r) for r in rows]
+    return result
 
 def delete_user(user_id):
     conn = get_db()
-    conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
     conn.commit()
+    cursor.close()
     conn.close()
 
 def get_stats():
     conn = get_db()
-    total_users   = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-    total_logins  = conn.execute("SELECT COUNT(*) FROM logs WHERE action = 'Login Success'").fetchone()[0]
-    failed_logins = conn.execute("SELECT COUNT(*) FROM logs WHERE action = 'Login Failed'").fetchone()[0]
-    suspicious    = conn.execute("SELECT COUNT(*) FROM attempts WHERE count >= 3").fetchone()[0]
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM users")
+    total_users = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM logs WHERE action = 'Login Success'")
+    total_logins = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM logs WHERE action = 'Login Failed'")
+    failed_logins = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM attempts WHERE count >= 3")
+    suspicious = cursor.fetchone()[0]
+    cursor.close()
     conn.close()
     return {
         "total_users": total_users,

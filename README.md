@@ -35,7 +35,7 @@ A professional Flask-based security dashboard application with role-based access
 ```
 cyberguard/
 ├── app.py                    # Flask entry point
-├── database.py              # SQLite database helpers
+├── database.py              # Azure SQL database helpers (pyodbc)
 ├── requirements.txt         # Python dependencies
 │
 ├── routes/
