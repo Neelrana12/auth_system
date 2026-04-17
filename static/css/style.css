@@ -772,6 +772,7 @@ body.auth-page {
 
 .input-icon-wrap .form-input {
     padding-left: 38px;
+    padding-right: 40px;
 }
 
 .input-icon {
@@ -781,6 +782,26 @@ body.auth-page {
     transform: translateY(-50%);
     color: #64748b;
     font-size: 16px;
+}
+
+.password-toggle {
+    position: absolute !important;
+    right: 12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    background: none !important;
+    border: none !important;
+    cursor: pointer !important;
+    padding: 6px 8px !important;
+    color: var(--text-muted) !important;
+    font-size: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.password-toggle:hover {
+    color: var(--blue-primary) !important;
 }
 
 .auth-footer {
