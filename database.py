@@ -4,13 +4,17 @@ import os
 
 def get_db():
     """Connect to Supabase PostgreSQL."""
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST"),
-        database=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASS"),
-        port=os.getenv("DB_PORT", "5432")
-    )
+    try:
+        return psycopg2.connect(
+            host=os.getenv("DB_HOST"),
+            database=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASS"),
+            port=os.getenv("DB_PORT", "5432")
+        )
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        raise
 
 def row_to_dict(cursor, row):
     """Convert psycopg2 row to dictionary."""
@@ -22,102 +26,136 @@ def row_to_dict(cursor, row):
 # ─── Auth helpers ────────────────────────────────────────────────────────────
 
 def get_user_by_username(username):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
-    row = cursor.fetchone()
-    user = row_to_dict(cursor, row)
-    cursor.close()
-    conn.close()
-    return user
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+        row = cursor.fetchone()
+        user = row_to_dict(cursor, row)
+        cursor.close()
+        conn.close()
+        return user
+    except Exception as e:
+        print(f"Error getting user by username: {e}")
+        return None
 
 def get_user_by_email(email):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-    row = cursor.fetchone()
-    user = row_to_dict(cursor, row)
-    cursor.close()
-    conn.close()
-    return user
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        row = cursor.fetchone()
+        user = row_to_dict(cursor, row)
+        cursor.close()
+        conn.close()
+        return user
+    except Exception as e:
+        print(f"Error getting user by email: {e}")
+        return None
 
 def create_user(full_name, username, email, hashed_password, role="user"):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO users (full_name, username, email, password, role) VALUES (%s,%s,%s,%s,%s)",
-        (full_name, username, email, hashed_password, role)
-    )
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO users (full_name, username, email, password, role) VALUES (%s,%s,%s,%s,%s)",
+            (full_name, username, email, hashed_password, role)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error creating user: {e}")
+        raise
 
 # ─── Attempt helpers ─────────────────────────────────────────────────────────
 
 def get_attempts(username):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM attempts WHERE username = %s", (username,))
-    row = cursor.fetchone()
-    result = row_to_dict(cursor, row)
-    cursor.close()
-    conn.close()
-    return result
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM attempts WHERE username = %s", (username,))
+        row = cursor.fetchone()
+        result = row_to_dict(cursor, row)
+        cursor.close()
+        conn.close()
+        return result
+    except Exception as e:
+        print(f"Error getting attempts: {e}")
+        return None
 
 def increment_attempt(username, ip):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM attempts WHERE username = %s", (username,))
-    existing = cursor.fetchone()
-    if existing:
-        cursor.execute(
-            "UPDATE attempts SET count = count + 1, last_attempt = NOW(), ip = %s WHERE username = %s",
-            (ip, username)
-        )
-    else:
-        cursor.execute(
-            "INSERT INTO attempts (username, ip, count) VALUES (%s,%s,1)",
-            (username, ip)
-        )
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM attempts WHERE username = %s", (username,))
+        existing = cursor.fetchone()
+        if existing:
+            cursor.execute(
+                "UPDATE attempts SET count = count + 1, last_attempt = NOW(), ip = %s WHERE username = %s",
+                (ip, username)
+            )
+        else:
+            cursor.execute(
+                "INSERT INTO attempts (username, ip, count) VALUES (%s,%s,1)",
+                (username, ip)
+            )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error incrementing attempt: {e}")
 
 def reset_attempts(username):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM attempts WHERE username = %s", (username,))
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM attempts WHERE username = %s", (username,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error resetting attempts: {e}")
 
 def is_account_locked(username):
-    row = get_attempts(username)
-    if row and row["count"] >= 5:
-        last = row["last_attempt"]
+    try:
+        row = get_attempts(username)
+        if not row or row.get("count", 0) < 5:
+            return False, 0
+        
+        last = row.get("last_attempt")
+        if not last:
+            return False, 0
+        
+        # Handle different datetime formats
         if isinstance(last, str):
             last = datetime.strptime(last, "%Y-%m-%d %H:%M:%S")
-        
-        # Handle timezone-aware datetime from PostgreSQL
-        if last.tzinfo is not None:
+        elif hasattr(last, 'tzinfo') and last.tzinfo is not None:
             last = last.replace(tzinfo=None)
         
+        # Check if locked (5+ attempts within 10 minutes)
         if datetime.now() - last < timedelta(minutes=10):
-            return True, row["count"]
-    return False, 0
+            return True, row.get("count", 0)
+        return False, 0
+    except Exception as e:
+        print(f"Error in is_account_locked: {e}")
+        return False, 0
 
 # ─── Log helpers ─────────────────────────────────────────────────────────────
 
 def add_log(username, action, ip="N/A", status="info"):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute(
-        "INSERT INTO logs (username, action, ip, status) VALUES (%s,%s,%s,%s)",
-        (username, action, ip, status)
-    )
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO logs (username, action, ip, status) VALUES (%s,%s,%s,%s)",
+            (username, action, ip, status)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error adding log: {e}")
 
 # ─── Dashboard data helpers ───────────────────────────────────────────────────
 
