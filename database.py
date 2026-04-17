@@ -97,6 +97,11 @@ def is_account_locked(username):
         last = row["last_attempt"]
         if isinstance(last, str):
             last = datetime.strptime(last, "%Y-%m-%d %H:%M:%S")
+        
+        # Handle timezone-aware datetime from PostgreSQL
+        if last.tzinfo is not None:
+            last = last.replace(tzinfo=None)
+        
         if datetime.now() - last < timedelta(minutes=10):
             return True, row["count"]
     return False, 0
