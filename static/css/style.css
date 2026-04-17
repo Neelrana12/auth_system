@@ -798,6 +798,8 @@ body.auth-page {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    z-index: 10 !important;
+    pointer-events: auto !important;
 }
 
 .password-toggle:hover {
