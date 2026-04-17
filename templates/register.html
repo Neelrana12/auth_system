@@ -5,7 +5,6 @@
 <div class="auth-page">
     <div class="auth-wrapper">
         <div class="auth-card">
-            <div class="auth-logo">🔐</div>
             <div class="auth-title">Create Account</div>
         <div class="auth-subtitle">Join CyberGuard Security Platform</div>
 
@@ -51,6 +50,9 @@
                     <div class="input-icon-wrap">
                         <i class="bi bi-lock input-icon"></i>
                         <input name="password" id="pwInput" type="password" class="form-input" placeholder="Enter a strong password" required>
+                        <button type="button" class="password-toggle" onclick="togglePasswordField('pwInput')" style="background:none; border:none; cursor:pointer; padding:8px; color:var(--text-muted); font-size:18px;">
+                            <i id="pwIcon" class="bi bi-eye"></i>
+                        </button>
                     </div>
                     <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwFill"></div></div>
                     <div class="pw-hint" id="pwHint">Enter a strong password</div>
@@ -60,6 +62,9 @@
                     <div class="input-icon-wrap">
                         <i class="bi bi-lock-fill input-icon"></i>
                         <input name="confirm_password" id="pwConfirm" type="password" class="form-input" placeholder="Confirm password" required>
+                        <button type="button" class="password-toggle" onclick="togglePasswordField('pwConfirm')" style="background:none; border:none; cursor:pointer; padding:8px; color:var(--text-muted); font-size:18px;">
+                            <i id="pwConfirmIcon" class="bi bi-eye"></i>
+                        </button>
                     </div>
                     <div class="pw-hint" id="matchHint">Must match above</div>
                 </div>
@@ -120,5 +125,21 @@ pwConfirm.addEventListener('input', () => {
         matchHint.style.color = '#dc2626';
     }
 });
+
+function togglePasswordField(fieldId) {
+    const input = document.getElementById(fieldId);
+    const iconId = fieldId === 'pwInput' ? 'pwIcon' : 'pwConfirmIcon';
+    const icon = document.getElementById(iconId);
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+}
 </script>
 {% endblock %}
