@@ -124,7 +124,7 @@
                             <div style="flex:1; min-width:0;">
                                 <div style="font-size:13px; font-weight:600;">{{ s.username }}</div>
                                 <div style="font-size:11px; color:var(--text-muted);">
-                                    IP: <span class="mono">{{ s.ip }}</span> &nbsp;|&nbsp; Last: {{ s.last_attempt[:16] }}
+                                    IP: <span class="mono">{{ s.ip }}</span> &nbsp;|&nbsp; Last: {{ s.last_attempt }}
                                 </div>
                             </div>
                             <span class="{% if s.count >= 5 %}badge-danger{% else %}badge-warning{% endif %}">
@@ -169,7 +169,7 @@
                                         {{ u.role }}
                                     </span>
                                 </td>
-                                <td style="font-size:12px; color:var(--text-muted);">{{ u.created_at[:10] }}</td>
+                                <td style="font-size:12px; color:var(--text-muted);">{{ u.created_at }}</td>
                                 <td>
                                     {% if u.username != username %}
                                     <form method="POST" action="/admin/delete-user/{{ u.id }}"
@@ -214,7 +214,7 @@
                             <td style="font-weight:500; font-size:13px;">{{ log.username }}</td>
                             <td style="font-size:13px;">{{ log.action }}</td>
                             <td class="mono" style="font-size:12px; color:var(--text-muted);">{{ log.ip }}</td>
-                            <td style="font-size:12px; color:var(--text-muted);">{{ log.time[:19] }}</td>
+                            <td style="font-size:12px; color:var(--text-muted);">{{ log.time }}</td>
                             <td>
                                 <span class="badge-{{ log.status }}">
                                     {% if log.status == 'success' %}✓{% elif log.status == 'danger' %}✗{% elif log.status == 'warning' %}⚠{% else %}ℹ{% endif %}

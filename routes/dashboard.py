@@ -39,8 +39,31 @@ def dashboard():
     if role == "admin":
         stats = get_stats()
         logs = get_all_logs(200)
+        
+        # Format log timestamps for display
+        for log in logs:
+            if hasattr(log["time"], 'strftime'):
+                log["time"] = log["time"].strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                log["time"] = str(log["time"])[:19]
+        
         suspicious = get_suspicious_users(3)
+        
+        # Format suspicious users' last_attempt timestamps
+        for s in suspicious:
+            if hasattr(s["last_attempt"], 'strftime'):
+                s["last_attempt"] = s["last_attempt"].strftime("%Y-%m-%d %H:%M")
+            else:
+                s["last_attempt"] = str(s["last_attempt"])[:16]
+        
         users = get_all_users()
+        
+        # Format users' created_at timestamps
+        for u in users:
+            if hasattr(u["created_at"], 'strftime'):
+                u["created_at"] = u["created_at"].strftime("%Y-%m-%d")
+            else:
+                u["created_at"] = str(u["created_at"])[:10]
 
         return render_template(
             "dashboard_admin.html",
@@ -55,9 +78,20 @@ def dashboard():
     # User Dashboard
     else:
         user_logs = get_user_logs(username, 50)
+        
+        # Format log timestamps for display
+        for log in user_logs:
+            if hasattr(log["time"], 'strftime'):
+                log["time"] = log["time"].strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                log["time"] = str(log["time"])[:19]
+        
         success_count = sum(1 for l in user_logs if l["action"] == "Login Success")
         failed_count = sum(1 for l in user_logs if l["action"] == "Login Failed")
-        last_login = next((l["time"] for l in user_logs if l["action"] == "Login Success"), "Never")
+        
+        # Get last login time and format it
+        last_login_obj = next((l for l in user_logs if l["action"] == "Login Success"), None)
+        last_login = last_login_obj["time"] if last_login_obj else "Never"
 
         return render_template(
             "dashboard_user.html",

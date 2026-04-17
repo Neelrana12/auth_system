@@ -76,7 +76,7 @@
                     <div class="stat-icon cyan"><i class="bi bi-clock-history"></i></div>
                     <div class="stat-label">Last Login</div>
                     <div style="font-size:13px; font-weight:600; color:var(--accent); margin-top:8px;">
-                        {{ last_login[:16] if last_login != 'Never' else 'Never' }}
+                        {{ last_login }}
                     </div>
                 </div>
             </div>
@@ -117,7 +117,7 @@
                             <tr data-search="{{ log.action|lower }} {{ log.ip|lower }}">
                                 <td style="font-size:13px; font-weight:500;">{{ log.action }}</td>
                                 <td><code style="font-size:11px;">{{ log.ip }}</code></td>
-                                <td><small style="color:var(--text-muted);">{{ log.time[:19] }}</small></td>
+                                <td><small style="color:var(--text-muted);">{{ log.time }}</small></td>
                                 <td>
                                     {% if log.status == 'success' %}
                                         <span class="badge-success">✓ Success</span>
