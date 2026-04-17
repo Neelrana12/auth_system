@@ -3,7 +3,7 @@ from flask_bcrypt import Bcrypt
 import os
 
 app = Flask(__name__)
-app.secret_key = "cyberguard_secret_2024_change_in_production"
+app.secret_key = os.getenv("SECRET_KEY", "dev_secret_change_in_production")
 
 bcrypt = Bcrypt(app)
 
