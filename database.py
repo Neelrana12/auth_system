@@ -1,21 +1,22 @@
-import pyodbc
+import psycopg2
 from datetime import datetime, timedelta
+import os
 
 def get_db():
-    """Connect to Azure SQL Database."""
-    return pyodbc.connect(
-        'DRIVER={ODBC Driver 17 for SQL Server};'
-        'SERVER=neel-sql-server.database.windows.net;'
-        'DATABASE=cyberguard_db;'
-        'UID=neeladmin;'
-        'PWD=Neel@12345'
+    """Connect to Supabase PostgreSQL."""
+    return psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        database=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASS"),
+        port=os.getenv("DB_PORT", "5432")
     )
 
 def row_to_dict(cursor, row):
-    """Convert pyodbc row to dictionary."""
+    """Convert psycopg2 row to dictionary."""
     if row is None:
         return None
-    columns = [column[0] for column in cursor.description]
+    columns = [desc[0] for desc in cursor.description]
     return dict(zip(columns, row))
 
 # ─── Auth helpers ────────────────────────────────────────────────────────────
@@ -23,7 +24,7 @@ def row_to_dict(cursor, row):
 def get_user_by_username(username):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     row = cursor.fetchone()
     user = row_to_dict(cursor, row)
     cursor.close()
@@ -33,7 +34,7 @@ def get_user_by_username(username):
 def get_user_by_email(email):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+    cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
     row = cursor.fetchone()
     user = row_to_dict(cursor, row)
     cursor.close()
@@ -44,7 +45,7 @@ def create_user(full_name, username, email, hashed_password, role="user"):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO users (full_name, username, email, password, role) VALUES (?,?,?,?,?)",
+        "INSERT INTO users (full_name, username, email, password, role) VALUES (%s,%s,%s,%s,%s)",
         (full_name, username, email, hashed_password, role)
     )
     conn.commit()
@@ -56,7 +57,7 @@ def create_user(full_name, username, email, hashed_password, role="user"):
 def get_attempts(username):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM attempts WHERE username = ?", (username,))
+    cursor.execute("SELECT * FROM attempts WHERE username = %s", (username,))
     row = cursor.fetchone()
     result = row_to_dict(cursor, row)
     cursor.close()
@@ -66,16 +67,16 @@ def get_attempts(username):
 def increment_attempt(username, ip):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM attempts WHERE username = ?", (username,))
+    cursor.execute("SELECT id FROM attempts WHERE username = %s", (username,))
     existing = cursor.fetchone()
     if existing:
         cursor.execute(
-            "UPDATE attempts SET count = count + 1, last_attempt = CURRENT_TIMESTAMP, ip = ? WHERE username = ?",
+            "UPDATE attempts SET count = count + 1, last_attempt = NOW(), ip = %s WHERE username = %s",
             (ip, username)
         )
     else:
         cursor.execute(
-            "INSERT INTO attempts (username, ip, count) VALUES (?,?,1)",
+            "INSERT INTO attempts (username, ip, count) VALUES (%s,%s,1)",
             (username, ip)
         )
     conn.commit()
@@ -85,7 +86,7 @@ def increment_attempt(username, ip):
 def reset_attempts(username):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM attempts WHERE username = ?", (username,))
+    cursor.execute("DELETE FROM attempts WHERE username = %s", (username,))
     conn.commit()
     cursor.close()
     conn.close()
@@ -93,7 +94,9 @@ def reset_attempts(username):
 def is_account_locked(username):
     row = get_attempts(username)
     if row and row["count"] >= 5:
-        last = datetime.strptime(str(row["last_attempt"]), "%Y-%m-%d %H:%M:%S.%f")
+        last = row["last_attempt"]
+        if isinstance(last, str):
+            last = datetime.strptime(last, "%Y-%m-%d %H:%M:%S")
         if datetime.now() - last < timedelta(minutes=10):
             return True, row["count"]
     return False, 0
@@ -104,7 +107,7 @@ def add_log(username, action, ip="N/A", status="info"):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO logs (username, action, ip, status) VALUES (?,?,?,?)",
+        "INSERT INTO logs (username, action, ip, status) VALUES (%s,%s,%s,%s)",
         (username, action, ip, status)
     )
     conn.commit()
@@ -117,7 +120,7 @@ def get_all_logs(limit=200):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT * FROM logs ORDER BY time DESC LIMIT ?", (limit,)
+        "SELECT * FROM logs ORDER BY time DESC LIMIT %s", (limit,)
     )
     rows = cursor.fetchall()
     result = [row_to_dict(cursor, r) for r in rows]
@@ -129,7 +132,7 @@ def get_user_logs(username, limit=50):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT * FROM logs WHERE username = ? ORDER BY time DESC LIMIT ?",
+        "SELECT * FROM logs WHERE username = %s ORDER BY time DESC LIMIT %s",
         (username, limit)
     )
     rows = cursor.fetchall()
@@ -152,7 +155,7 @@ def get_suspicious_users(threshold=3):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT username, ip, count, last_attempt FROM attempts WHERE count >= ? ORDER BY count DESC",
+        "SELECT username, ip, count, last_attempt FROM attempts WHERE count >= %s ORDER BY count DESC",
         (threshold,)
     )
     rows = cursor.fetchall()
@@ -164,7 +167,7 @@ def get_suspicious_users(threshold=3):
 def delete_user(user_id):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
     conn.commit()
     cursor.close()
     conn.close()
