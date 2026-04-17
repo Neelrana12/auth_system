@@ -768,6 +768,7 @@ body.auth-page {
 
 .input-icon-wrap {
     position: relative;
+    pointer-events: auto;
 }
 
 .input-icon-wrap .form-input {
