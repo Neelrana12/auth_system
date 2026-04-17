@@ -530,6 +530,7 @@ code, .mono {
     font-size: 14px;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
+    position: relative;
 }
 
 .form-input::placeholder {
@@ -718,11 +719,11 @@ body.auth-page {
 
 .auth-card {
     width: 100%;
-    max-width: 450px;
+    max-width: 600px;
     background: #0f172a;
     border: 1px solid #1e293b;
     border-radius: 12px;
-    padding: 48px 40px;
+    padding: 56px 48px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 

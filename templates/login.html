@@ -5,8 +5,9 @@
 <div class="auth-page">
     <div class="auth-wrapper">
         <div class="auth-card">
+
             <div class="auth-title">Welcome Back</div>
-        <div class="auth-subtitle">Sign in to your CyberGuard account</div>
+        <div class="auth-subtitle">Sign in to your CyberGuard Account</div>
 
         <!-- Flash messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -34,7 +35,7 @@
                 <div class="input-icon-wrap">
                     <i class="bi bi-lock input-icon"></i>
                     <input id="passwordInput" name="password" type="password" class="form-input" placeholder="Enter your password" autocomplete="current-password" required>
-                    <button type="button" class="password-toggle" onclick="togglePassword()">
+                    <button type="button" class="password-toggle">
                         <i id="passwordIcon" class="bi bi-eye"></i>
                     </button>
                 </div>
@@ -51,18 +52,25 @@
 {% endblock %}
 
 <script>
-function togglePassword() {
-    const input = document.getElementById('passwordInput');
-    const icon = document.getElementById('passwordIcon');
-    
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.classList.remove('bi-eye');
-        icon.classList.add('bi-eye-slash');
-    } else {
-        input.type = 'password';
-        icon.classList.remove('bi-eye-slash');
-        icon.classList.add('bi-eye');
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.querySelector('.password-toggle');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const input = document.getElementById('passwordInput');
+            const icon = document.getElementById('passwordIcon');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        });
     }
-}
+});
 </script>

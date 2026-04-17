@@ -50,7 +50,7 @@
                     <div class="input-icon-wrap">
                         <i class="bi bi-lock input-icon"></i>
                         <input name="password" id="pwInput" type="password" class="form-input" placeholder="Enter a strong password" required>
-                        <button type="button" class="password-toggle" onclick="togglePasswordField('pwInput')">
+                        <button type="button" class="password-toggle">
                             <i id="pwIcon" class="bi bi-eye"></i>
                         </button>
                     </div>
@@ -62,7 +62,7 @@
                     <div class="input-icon-wrap">
                         <i class="bi bi-lock-fill input-icon"></i>
                         <input name="confirm_password" id="pwConfirm" type="password" class="form-input" placeholder="Confirm password" required>
-                        <button type="button" class="password-toggle" onclick="togglePasswordField('pwConfirm')">
+                        <button type="button" class="password-toggle">
                             <i id="pwConfirmIcon" class="bi bi-eye"></i>
                         </button>
                     </div>
@@ -141,5 +141,31 @@ function togglePasswordField(fieldId) {
         icon.classList.add('bi-eye');
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleButtons = document.querySelectorAll('.password-toggle');
+    toggleButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Check which password field this belongs to
+            const wrapper = this.closest('.input-icon-wrap');
+            const input = wrapper.querySelector('input[type="password"], input[type="text"]');
+            const iconId = input.id === 'pwInput' ? 'pwIcon' : (input.id === 'pwConfirm' ? 'pwConfirmIcon' : 'passwordIcon');
+            const icon = this.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        });
+    });
+});
 </script>
 {% endblock %}
